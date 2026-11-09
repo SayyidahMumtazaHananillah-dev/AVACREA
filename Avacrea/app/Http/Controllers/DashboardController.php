@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Oc;
 
 class DashboardController extends Controller
 {
+    // DASHBOARD / HOME
     public function index()
     {
         $baseAssets = [
@@ -16,22 +19,24 @@ class DashboardController extends Controller
         return view('dashboard.index', compact('baseAssets'));
     }
 
+
+    // PROFILE
     public function profile()
     {
-        $user = (object)[
-            'name'     => 'Creator Hanan',
-            'username' => 'creatanan',
-            'email'    => 'creator@avacrea.test',
-        ];
+        // Mengambil akun yang sedang login
+        $user = Auth::user();
 
-        $ocs = [];
+        // Mengambil OC berdasarkan pemiliknya
+        $ocs = Oc::where('user_id', $user->id)->get();
 
         return view('dashboard.profile', compact('user', 'ocs'));
     }
 
+
+    // EXPLORE
     public function explore(Request $request)
     {
-        $search =$request->input('search');
+        $search = $request->input('search');
 
         // Dummy 20 OC orang lain untuk mengisi 5 shaf
         $dummyOcs = collect([
@@ -194,7 +199,7 @@ class DashboardController extends Controller
                 'creator' => 'melody_maker',
                 'age' => '16 tahun',
                 'role' => 'Sound Synthesizer',
-                'bio' => 'Vokalis band siber bawah tanah yang suaranya bisa memanipulasi gelombang frekuensi gelombang.',
+                'bio' => 'Vokalis band siber bawah tanah yang suaranya bisa memanipulasi gelombang frekuensi.',
                 'thumbnail' => asset('Assets/Character/Base/base color.png')
             ],
             [
@@ -217,14 +222,14 @@ class DashboardController extends Controller
             ],
         ]);
 
-        // Filter berdasarkan pencarian username jika diinput
+        // Filter berdasarkan username atau nama OC
         if (!empty($search)) {
-            $filteredOcs =$dummyOcs->filter(function ($item) use ($search) {
+            $filteredOcs = $dummyOcs->filter(function ($item) use ($search) {
                 return str_contains(strtolower($item['creator']), strtolower($search)) ||
                        str_contains(strtolower($item['name']), strtolower($search));
             });
         } else {
-            $filteredOcs =$dummyOcs;
+            $filteredOcs = $dummyOcs;
         }
 
         return view('dashboard.explore', [
@@ -233,6 +238,8 @@ class DashboardController extends Controller
         ]);
     }
 
+
+    // LOGOUT
     public function logout(Request $request)
     {
         return redirect()->route('dashboard');

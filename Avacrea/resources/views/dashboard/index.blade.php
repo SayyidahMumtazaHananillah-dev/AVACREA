@@ -41,28 +41,7 @@
 <body style="background-color: #F4D06F !important; color-scheme: light;" class="text-space-indigo h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
 
 <!-- Top Navbar -->
-<!-- Top Navbar -->
-    <header class="h-16 px-8 flex items-center justify-between border-b border-[#36210E]/20 bg-[#36210E]/95 backdrop-blur-md z-20 shrink-0">
-        <!-- Logo AVACREA -->
-        <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-princeton-orange flex items-center justify-center shadow-md shadow-princeton-orange/30">
-                <i class="fa-solid fa-wand-magic-sparkles text-[#F0ECE1] text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-xl font-black tracking-wider text-[#F0ECE1]">AVACREA</h1>
-                <p class="text-[10px] text-princeton-orange font-bold tracking-widest uppercase">OC Studio Online</p>
-            </div>
-        </a>
-
-        <!-- Tombol Logout di Kanan Atas -->
-        <form method="POST" action="{{ route('logout') }}" class="m-0">
-            @csrf
-            <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold text-xs rounded-xl shadow-sm hover:scale-105 active:scale-95 transition-all">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                <span>Logout</span>
-            </button>
-        </form>
-    </header>
+@include('layouts.navbar')
 
     <!-- Main Workspace -->
     <main class="flex-1 relative flex flex-row items-end justify-between px-6 md:px-16 overflow-hidden">
@@ -107,50 +86,8 @@
         </section>
     </main>
 
-    <!-- Bottom Navbar -->
-    <nav class="h-20 bg-space-indigo px-8 flex items-center justify-around z-30 shadow-2xl border-t border-space-indigo">
-        <!-- Home (Active) -->
-        <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1.5 text-jasmine group">
-            <div class="w-11 h-11 rounded-2xl bg-jasmine/20 flex items-center justify-center transition-transform group-hover:scale-110">
-                <i class="fa-solid fa-house text-xl"></i>
-            </div>
-            <span class="text-xs font-bold tracking-wider">Home</span>
-        </a>
-
-<!-- Explore & Search -->
-<a href="{{ route('explore') }}" class="flex flex-col items-center gap-1.5 text-pearl-aqua/80 hover:text-pearl-aqua group transition">
-    <div class="w-11 h-11 rounded-2xl bg-transparent flex items-center justify-center transition-transform group-hover:scale-110">
-        <i class="fa-solid fa-compass text-xl"></i>
-    </div>
-    <span class="text-xs font-semibold tracking-wider">Explore & Search</span>
-</a>
-
-      <!-- Account -->
-        <a href="{{ route('profile') }}" class="flex flex-col items-center gap-1.5 text-pearl-aqua/80 hover:text-pearl-aqua group transition">
-            <div class="w-11 h-11 rounded-2xl bg-transparent flex items-center justify-center transition-transform group-hover:scale-110">
-                <i class="fa-solid fa-circle-user text-xl"></i>
-            </div>
-            <span class="text-xs font-semibold tracking-wider">Account</span>
-        </a>
-
-            <!-- Popup Menu Account -->
-            <div class="hidden group-hover:block hover:block absolute bottom-16 right-0 w-44 bg-space-indigo border border-pearl-aqua/30 rounded-2xl p-2 shadow-2xl">
-<!-- Ganti link Account di navbar bawah index.blade.php menjadi: -->
-<a href="{{ route('profile') }}" class="flex flex-col items-center gap-1.5 text-pearl-aqua/80 hover:text-pearl-aqua group transition">
-    <div class="w-11 h-11 rounded-2xl bg-transparent flex items-center justify-center transition-transform group-hover:scale-110">
-        <i class="fa-solid fa-circle-user text-xl"></i>
-    </div>
-    <span class="text-xs font-semibold tracking-wider">Account</span>
-</a>
-                <form method="POST" action="{{ route('logout') }}" class="w-full">
-                    @csrf
-                    <button type="submit" class="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-rose-300 hover:bg-rose-500/20 rounded-xl text-left transition font-semibold">
-                        <i class="fa-solid fa-right-from-bracket"></i> Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-    </nav>
+<!-- Bottom Navbar -->
+@include('layouts.bottom-navbar')
 
 </body>
 </html>
