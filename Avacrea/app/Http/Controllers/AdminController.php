@@ -104,6 +104,7 @@ class AdminController extends Controller
 
         $request->validate([
             'name'           => 'required|string|max:100',
+            'category_id'    => 'required|exists:asset_categories,id',
             'lineart'        => 'nullable|image|mimes:png|max:5120',
             'color_1'        => 'nullable|image|mimes:png|max:5120',
             'extra_colors'   => 'nullable|array',
@@ -116,6 +117,8 @@ class AdminController extends Controller
         $destination = public_path($folderPath);
 
         $asset->name = $request->name;
+
+        $asset->category_id = $request->category_id;
 
         if ($request->hasFile('lineart')) {
             if ($asset->lineart_path && File::exists(public_path($asset->lineart_path))) {

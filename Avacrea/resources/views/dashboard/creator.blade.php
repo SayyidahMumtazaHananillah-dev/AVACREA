@@ -22,6 +22,7 @@
         }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar {
             display: none;
@@ -118,25 +119,46 @@
             </div>
 
             <!-- Form Simpan -->
-            <form action="{{ route('creator.save') }}" method="POST" class="flex flex-col gap-3 shrink-0">
+            <form id="creatorSaveForm" action="{{ route('creator.save') }}" method="POST" class="flex flex-col gap-3 shrink-0">
                 @csrf
                 <input type="hidden" name="oc_payload" id="ocPayloadInput">
+                <input
+                    type="hidden"
+                    name="oc_id"
+                    value="{{ $editOc?->id ?? '' }}"
+                >
+                <input type="hidden" name="oc_thumbnail" id="ocThumbnailInput">
 
                 <input type="text" 
                        name="name" 
                        id="ocNameInput"
+                       value="{{ $editOc?->name ?? '' }}"
                        placeholder="Nama OC" 
                        required
                        class="w-full px-5 py-3.5 rounded-2xl bg-white border-2 border-space-indigo/20 focus:border-princeton-orange focus:outline-none text-sm font-bold text-space-indigo placeholder-space-indigo/40 shadow-sm transition">
+
+                <textarea
+                    name="description"
+                    id="ocDescriptionInput"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="Ceritakan tentang OC kamu..."
+                    class="w-full rounded-xl border border-[#392F5A]/20 bg-white p-3 text-sm text-[#392F5A] outline-none focus:border-[#FF8811]"
+                >{{ old('description', $editOc?->description ?? '') }}</textarea>
 
                 <div class="grid grid-cols-4 gap-2.5">
                     <button type="submit" class="py-3 px-2 rounded-2xl bg-princeton-orange hover:bg-orange-600 text-white font-extrabold text-xs tracking-wide shadow-md shadow-princeton-orange/30 active:scale-95 transition">
                         Save
                     </button>
-                    <button type="button" onclick="alert('Fitur Download PNG segera hadir!')" class="py-3 px-2 rounded-2xl bg-space-indigo hover:bg-space-indigo/90 text-white font-extrabold text-xs tracking-wide shadow-md active:scale-95 transition">
+                    <button
+                        type="button"
+                        onclick="downloadOc()"
+                        class="py-3 px-2 rounded-2xl bg-space-indigo hover:bg-space-indigo/90 text-white font-extrabold text-xs tracking-wide shadow-md active:scale-95 transition"
+                    >
+                        <i class="fa-solid fa-download"></i>
                         Download
                     </button>
-                    <button type="button" onclick="alert('Link share disalin!')" class="py-3 px-2 rounded-2xl bg-pearl-aqua hover:bg-[#8bcac3] text-space-indigo font-extrabold text-xs tracking-wide shadow-md active:scale-95 transition">
+                    <button type="button" onclick="alert('Link share belum tersedia karena hanya website lokal!')" class="py-3 px-2 rounded-2xl bg-pearl-aqua hover:bg-[#8bcac3] text-space-indigo font-extrabold text-xs tracking-wide shadow-md active:scale-95 transition">
                         Share
                     </button>
                     <button type="button" onclick="randomizeOc()" class="py-3 px-2 rounded-2xl bg-space-indigo hover:bg-space-indigo/90 text-white font-extrabold text-xs tracking-wide shadow-md active:scale-95 transition">
@@ -226,6 +248,7 @@
 
     <script>
         const categoriesData = @json($categories);
+        const savedConfiguration = @json($editOc?->configuration);
         const baseSkinColorUrl = "{{ $baseAssets['color'] }}";
         const baseSkinLineartUrl = "{{ $baseAssets['lineart'] }}";
 
@@ -262,6 +285,32 @@
                 }
             };
         });
+
+        // Pulihkan konfigurasi OC jika sedang mengedit
+        if (savedConfiguration) {
+            Object.entries(savedConfiguration).forEach(([categoryId, saved]) => {
+                if (!ocState.selections[categoryId]) return;
+
+                const category = categoriesData.find(
+                    cat => cat.id === categoryId
+                );
+
+                const savedAssetId = saved.asset?.id;
+
+                const selectedAsset = category?.assets.find(
+                    asset => asset.id == savedAssetId
+                ) || null;
+
+                ocState.selections[categoryId] = {
+                    asset: selectedAsset,
+                    colors: {
+                        lineart: saved.colors?.lineart || '#26232D',
+                        color1: saved.colors?.color1 || '#FF8811',
+                        extras: saved.colors?.extras || []
+                    }
+                };
+            });
+        }
 
         function getActiveCategoryObj() {
             return categoriesData.find(c => c.id === ocState.activeCategory);
@@ -649,6 +698,89 @@
         renderAssetGrid();
         renderCanvasLayers();
         updateBadgeInfo();
+
+        document.getElementById('creatorSaveForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const button = this.querySelector('button[type="submit"]');
+        button.disabled = true;
+        button.innerText = 'Menyimpan...';
+
+        try {
+            await renderCanvasLayers();
+
+            const preview = document.getElementById('previewBg');
+
+            const canvas = await html2canvas(preview, {
+                backgroundColor: null,
+                scale: 2,
+                useCORS: true
+            });
+
+            const thumbnail = canvas.toDataURL('image/png');
+
+            document.getElementById('ocThumbnailInput').value = thumbnail;
+
+            this.submit();
+
+        } catch (error) {
+            console.error('Gagal membuat thumbnail:', error);
+            alert('Gagal mengambil gambar OC. Silakan coba lagi.');
+
+            button.disabled = false;
+            button.innerText = 'Save';
+        }
+    });
+
+    async function downloadOc() {
+        const button = document.querySelector('[onclick="downloadOc()"]');
+
+        try {
+            button.disabled = true;
+
+            // Pastikan desain sudah dirender
+            await renderCanvasLayers();
+
+            const preview = document.getElementById('previewBg');
+
+            // Tunggu semua gambar selesai dimuat
+            const images = Array.from(preview.querySelectorAll('img'));
+
+            await Promise.all(
+                images.map(img => {
+                    if (img.complete) return Promise.resolve();
+
+                    return new Promise(resolve => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    });
+                })
+            );
+
+            const canvas = await html2canvas(preview, {
+                backgroundColor: null,
+                scale: 2,
+                useCORS: true
+            });
+
+            const link = document.createElement('a');
+
+            const name = document.getElementById('ocNameInput').value.trim()
+                || 'My-OC';
+
+            link.download = name.replace(/[^a-z0-9-_]/gi, '_') + '.png';
+            link.href = canvas.toDataURL('image/png');
+
+            link.click();
+
+        } catch (error) {
+            console.error('Gagal download OC:', error);
+            alert('Gagal mengunduh gambar OC. Silakan coba lagi.');
+        } finally {
+            button.disabled = false;
+        }
+    }
+    
     </script>
 </body>
 </html>

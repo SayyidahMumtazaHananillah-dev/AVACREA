@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AssetCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Oc;
 
 class DashboardController extends Controller
 {
@@ -19,33 +22,51 @@ class DashboardController extends Controller
 
     public function profile()
     {
-        $ocs = [];
-        return view('dashboard.profile', compact('ocs'));
+        $user = Auth::user() ?? (object) [
+            'name'     => 'Guest Creator',
+            'username' => 'guest',
+            'image'    => null,
+        ];
+
+        $ocs = Auth::check()
+    ? \App\Models\Oc::where('user_id', Auth::id())->get()
+    : collect();
+
+        return view('dashboard.profile', compact('user', 'ocs'));
     }
 
     public function explore(Request $request)
     {
         $search = $request->input('search');
-        $dummyOcs = collect([
-            [
-                'id' => 1,
-                'name' => 'Kaelen Vane',
-                'creator' => 'shadow_ninja',
-                'age' => '17 tahun',
-                'role' => 'Stealth Rogue',
-                'bio' => 'Mantan mata-mata distrik timur yang bergerak di kegelapan malam.',
-                'thumbnail' => asset('Assets/Character/Base/base color.png')
-            ],
-        ]);
 
-        $filteredOcs = !empty($search)
-            ? $dummyOcs->filter(fn($i) => str_contains(strtolower($i['creator']), strtolower($search)) || str_contains(strtolower($i['name']), strtolower($search)))
-            : $dummyOcs;
+        $ocs = Oc::with('user')
+            ->latest()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'ILIKE', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'ILIKE', "%{$search}%")
+                            ->orWhere('username', 'ILIKE', "%{$search}%");
+                    });
+                });
+            })
+            ->get()
+            ->map(function ($oc) {
+                return [
+                    'id' => $oc->id,
+                    'name' => $oc->name,
+                    'creator' => $oc->user->username ?? $oc->user->name ?? 'Unknown',
+                    'bio' => $oc->description ?? 'Tidak ada deskripsi.',
+                    'thumbnail' => $oc->thumbnail
+                        ? asset('storage/' . $oc->thumbnail)
+                        : asset('Assets/Character/Base/base color.png'),
+                ];
+            });
 
-        return view('dashboard.explore', ['ocs' => $filteredOcs, 'search' => $search]);
+        return view('dashboard.explore', compact('ocs', 'search'));
     }
 
-    public function creator()
+    public function creator(Request $request)
     {
         // Ambil kategori beserta aset asli yang sudah diupload admin dari database
         $dbCategories = AssetCategory::with('assets')->get();
@@ -88,12 +109,109 @@ class DashboardController extends Controller
             'lineart' => asset('Assets/Character/Base/base lineart.png'),
         ];
 
-        return view('dashboard.creator', compact('categories', 'colors', 'baseAssets'));
+        $editOc = null;
+
+        if ($request->filled('edit')) {
+            $editOc = Oc::where('user_id', Auth::id())
+                ->findOrFail($request->query('edit'));
+        }
+
+        return view('dashboard.creator', compact(
+            'categories',
+            'colors',
+            'baseAssets',
+            'editOc'
+        ));
     }
 
     public function saveOc(Request $request)
     {
-        return back()->with('success', 'Konfigurasi OC berhasil disimpan (Simulasi)!');
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'oc_payload' => 'required|json',
+            'oc_thumbnail' => 'required|string',
+            'oc_id' => 'nullable|integer',
+        ]);
+
+        $thumbnail = $validated['oc_thumbnail'];
+
+        if (!preg_match('/^data:image\/png;base64,/', $thumbnail)) {
+            return back()->withErrors([
+                'oc_thumbnail' => 'Format thumbnail tidak valid.'
+            ]);
+        }
+
+        $imageData = base64_decode(
+            substr($thumbnail, strpos($thumbnail, ',') + 1),
+            true
+        );
+
+        if ($imageData === false || strlen($imageData) > 5 * 1024 * 1024) {
+            return back()->withErrors([
+                'oc_thumbnail' => 'Ukuran thumbnail tidak valid atau terlalu besar.'
+            ]);
+        }
+
+        // Cari OC lama jika sedang mengedit
+        $oc = null;
+
+        if (!empty($validated['oc_id'])) {
+            $oc = Oc::where('user_id', Auth::id())
+                ->findOrFail($validated['oc_id']);
+        }
+
+        // Simpan thumbnail baru
+        $filename = 'ocs/' . uniqid() . '.png';
+
+        Storage::disk('public')->put($filename, $imageData);
+
+        // Hapus thumbnail lama jika sedang mengedit
+        if ($oc && $oc->thumbnail) {
+            Storage::disk('public')->delete($oc->thumbnail);
+        }
+
+        $data = [
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'configuration' => json_decode($validated['oc_payload'], true),
+            'thumbnail' => $filename,
+        ];
+
+        if ($oc) {
+            // Update OC lama
+            $oc->update($data);
+            $message = 'OC berhasil diperbarui!';
+        } else {
+            // Buat OC baru
+            $data['user_id'] = Auth::id();
+            Oc::create($data);
+            $message = 'OC berhasil disimpan!';
+        }
+
+        return redirect()->route('profile')->with('success', $message);
+    }
+
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = \App\Models\User::findOrFail(Auth::id());
+
+        $newImage = $request->file('image')->store('profile', 'public');
+
+        if ($user->image) {
+            Storage::disk('public')->delete($user->image);
+        }
+
+        $user->image = $newImage;
+        $user->save();
+
+        return redirect()->route('profile')
+            ->with('success', 'Foto profil berhasil diperbarui!');
     }
 
     public function logout(Request $request)

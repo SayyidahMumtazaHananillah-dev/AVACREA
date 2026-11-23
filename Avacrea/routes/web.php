@@ -8,10 +8,17 @@ use Illuminate\Support\Facades\Route;
 // Route User & Halaman Publik
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/profile', [DashboardController::class, 'profile'])->name('profile');
+
+Route::post('/profile/update-photo', [DashboardController::class, 'updatePhoto'])
+    ->middleware('auth')
+    ->name('profile.update-photo');
+
 Route::get('/explore', [DashboardController::class, 'explore'])->name('explore');
 Route::get('/creator', [DashboardController::class, 'creator'])->name('creator');
-Route::post('/creator/save', [DashboardController::class, 'saveOc'])->name('creator.save');
 
+Route::post('/creator/save', [DashboardController::class, 'saveOc'])
+    ->middleware('auth')
+    ->name('creator.save');
 // Route Auth
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');

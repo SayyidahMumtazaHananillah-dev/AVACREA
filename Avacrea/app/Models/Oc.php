@@ -14,7 +14,15 @@ class Oc extends Model
         'name',
         'description',
         'thumbnail',
+        'configuration',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'configuration' => 'array',
+        ];
+    }
 
     public function user(): BelongsTo
     {

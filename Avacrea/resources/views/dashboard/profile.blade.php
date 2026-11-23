@@ -32,214 +32,221 @@
         }
     </style>
 </head>
-<body style="background-color: #F4D06F !important; color-scheme: light;" class="text-space-indigo h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
 
-    <!-- Top Navbar -->
-    <header class="h-16 px-8 flex items-center justify-between border-b border-[#36210E]/20 bg-[#36210E]/95 backdrop-blur-md z-20 shrink-0">
-        <!-- Logo AVACREA -->
-        <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-2xl bg-princeton-orange flex items-center justify-center shadow-md shadow-princeton-orange/30">
-                <i class="fa-solid fa-wand-magic-sparkles text-[#F0ECE1] text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-xl font-black tracking-wider text-[#F0ECE1]">AVACREA</h1>
-                <p class="text-[10px] text-princeton-orange font-bold tracking-widest uppercase">OC Studio Online</p>
-            </div>
-        </a>
+<body style="background-color: #F4D06F !important; color-scheme: light;" class="text-space-indigo min-h-screen w-full overflow-x-hidden font-sans select-none">
 
-        @auth
-            <form method="POST" action="{{ route('logout') }}" class="m-0">
+    {{-- Navbar --}}
+    @include('layouts.navbar')
+
+    {{-- Main Content (pb-32 mencegah konten bawah terpotong bottom-navbar) --}}
+    <main class="w-full min-h-screen px-6 md:px-14 pt-24 pb-28 flex flex-col items-center">
+
+        {{-- Pesan Sukses --}}
+        @if(session('success'))
+            <div class="mb-5 px-5 py-3 bg-green-100 border border-green-300 text-green-700 rounded-xl text-sm font-bold">
+                <i class="fa-solid fa-circle-check mr-2"></i>
+                {{ session('success') }}
+            </div>
+        @endif
+
+        {{-- Profile Header --}}
+        <div class="flex flex-col items-center text-center mb-6 shrink-0">
+
+            {{-- Foto Profil --}}
+            <form action="{{ route('profile.update-photo') }}" method="POST" enctype="multipart/form-data" class="flex flex-col items-center mb-3">
                 @csrf
-                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 font-bold text-xs rounded-xl shadow-sm hover:scale-105 active:scale-95 transition-all">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span>Logout</span>
+
+                <div class="relative group">
+                    <div class="w-24 h-24 md:w-28 md:h-28 rounded-full p-1.5 bg-white shadow-xl shadow-space-indigo/10 border-2 border-white">
+                        <div class="w-full h-full rounded-full bg-space-indigo flex items-center justify-center overflow-hidden border-2 border-white">
+
+                            <img
+                                id="photoPreview"
+                                src="{{ !empty($user->image) ? asset('storage/' . $user->image) : '' }}"
+                                alt="Foto Profil"
+                                class="w-full h-full object-cover {{ empty($user->image) ? 'hidden' : '' }}"
+                            >
+
+                            <span id="photoInitial" class="text-3xl md:text-4xl font-black text-jasmine {{ !empty($user->image) ? 'hidden' : '' }}">
+                                {{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}
+                            </span>
+
+                        </div>
+                    </div>
+
+                    {{-- Icon Kamera --}}
+                    <label for="photoInput"
+                        class="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-princeton-orange text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer hover:bg-orange-600 transition">
+                        <i class="fa-solid fa-camera text-xs"></i>
+                    </label>
+                </div>
+
+                {{-- Input Foto --}}
+                <input
+                    type="file"
+                    name="image"
+                    id="photoInput"
+                    accept="image/png,image/jpeg,image/webp"
+                    class="hidden"
+                    onchange="previewPhoto(event)"
+                >
+
+                {{-- Tombol Simpan --}}
+                <button
+                    type="submit"
+                    id="savePhotoButton"
+                    class="hidden mt-3 px-5 py-2 bg-princeton-orange hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-md transition">
+                    <i class="fa-solid fa-floppy-disk mr-1"></i>
+                    Simpan Foto
                 </button>
-            </form>
-        @else
-            <a href="{{ route('login') }}" class="flex items-center gap-2 px-5 py-2.5 bg-princeton-orange hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-princeton-orange/30 hover:scale-105 active:scale-95 transition-all">
-                <i class="fa-solid fa-right-to-bracket"></i>
-                <span>Login</span>
-            </a>
-        @endauth
-    </header>
 
-    <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto no-scrollbar px-6 md:px-14 py-8 flex flex-col items-center justify-center">
-        
-        @auth
-            <!-- ========================================================== -->
-            <!-- TAMPILAN JIKA SUDAH LOGIN (Foto Profil, Username, Grid OC) -->
-            <!-- ========================================================== -->
-            <div class="w-full flex flex-col items-center my-auto">
-                <!-- Section Header Profil -->
-                <div class="flex flex-col items-center text-center mb-8 shrink-0">
-                    <div class="relative group cursor-pointer mb-3">
-                        <div class="w-24 h-24 md:w-28 md:h-28 rounded-full p-1.5 bg-white shadow-xl shadow-space-indigo/10 border-2 border-white">
-                            <div class="w-full h-full rounded-full bg-space-indigo flex items-center justify-center overflow-hidden border-2 border-white">
-                                <span class="text-3xl md:text-4xl font-black text-jasmine">
-                                    {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-princeton-orange text-white flex items-center justify-center shadow-md border-2 border-white">
-                            <i class="fa-solid fa-camera text-xs"></i>
-                        </div>
-                    </div>
-
-                    <h2 class="text-2xl md:text-3xl font-black tracking-tight text-space-indigo leading-tight">
-                        {{ auth()->user()->name }}
-                    </h2>
-                    <p class="text-xs md:text-sm font-bold text-princeton-orange mt-0.5 tracking-wide">
-                        {{ '@' . auth()->user()->username }}
-                    </p>
-                </div>
-
-                <!-- Section Grid OC / Empty State -->
-                <div class="w-full max-w-7xl">
-                    <div class="flex items-center justify-between mb-4 px-2">
-                        <h3 class="text-base font-extrabold uppercase tracking-wider text-space-indigo/80 flex items-center gap-2">
-                            <i class="fa-solid fa-layer-group text-princeton-orange"></i>
-                            Daftar OC Kamu ({{ count($ocs ?? []) }})
-                        </h3>
-                    </div>
-
-                    @if(count($ocs ?? []) > 0)
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-12">
-                            @foreach($ocs as $oc)
-                                <div class="relative group bg-white border-2 border-space-indigo/10 rounded-3xl overflow-hidden shadow-lg shadow-space-indigo/5 hover:shadow-2xl hover:border-princeton-orange/60 transition-all duration-300 flex flex-col aspect-square">
-                                    
-                                    <div class="relative w-full flex-1 flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#FFF8F0] to-pearl-aqua/15 p-4">
-                                        <img src="{{ $oc->thumbnail ?? asset('Assets/Character/Base/base color.png') }}" 
-                                             alt="{{ $oc->name }}" 
-                                             class="h-full w-auto object-contain transition-transform duration-500 group-hover:scale-110 drop-shadow-md">
-                                        
-                                        @if(!empty($oc->is_active))
-                                            <div class="absolute top-3 left-3 bg-princeton-orange text-[#FFF8F0] text-[10px] font-black tracking-wider uppercase px-2.5 py-1 rounded-full shadow">
-                                                Home Active
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <!-- Menu Titik 3 -->
-                                    <div class="absolute top-3 right-3 z-30">
-                                        <button onclick="toggleDropdown(event, 'menu-{{ $oc->id }}')" 
-                                                class="w-9 h-9 rounded-2xl bg-[#FFF8F0]/90 backdrop-blur-md border border-space-indigo/10 hover:bg-space-indigo hover:text-jasmine flex items-center justify-center text-space-indigo shadow-md transition-all">
-                                            <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
-                                        </button>
-
-                                        <div id="menu-{{ $oc->id }}" class="hidden absolute right-0 mt-2 w-48 bg-space-indigo text-[#FFF8F0] rounded-2xl p-2 shadow-2xl border border-pearl-aqua/20 z-40 text-left">
-                                            <a href="{{ route('creator') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-white/10 transition text-floral-white">
-                                                <i class="fa-solid fa-pen text-jasmine"></i>
-                                                <span>Edit Avatar</span>
-                                            </a>
-                                            <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-white/10 transition text-floral-white">
-                                                <i class="fa-solid fa-star text-pearl-aqua"></i>
-                                                <span>Jadikan Thumbnail Home</span>
-                                            </button>
-                                            <hr class="border-pearl-aqua/10 my-1">
-                                            <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-rose-500/20 text-rose-300 transition">
-                                                <i class="fa-solid fa-trash-can"></i>
-                                                <span>Hapus Avatar</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Bar Hover Nama OC -->
-                                    <div class="absolute bottom-0 inset-x-0 bg-space-indigo/90 backdrop-blur-md text-[#FFF8F0] p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-20 flex flex-col justify-center">
-                                        <p class="text-sm font-black truncate text-jasmine tracking-wide">
-                                            {{ $oc->name }}
-                                        </p>
-                                        <p class="text-[11px] text-pearl-aqua/90 line-clamp-1">
-                                            {{ $oc->description ?? 'Tidak ada deskripsi' }}
-                                        </p>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <!-- Empty State -->
-                        <div class="w-full min-h-[380px] rounded-3xl border-2 border-dashed border-space-indigo/20 flex flex-col items-center justify-center text-center p-8 bg-white/40 shadow-sm">
-                            <div class="w-20 h-20 rounded-3xl bg-pearl-aqua/30 flex items-center justify-center text-space-indigo text-3xl mb-4 shadow-inner">
-                                <i class="fa-solid fa-ghost"></i>
-                            </div>
-                            <h4 class="text-xl font-extrabold text-space-indigo tracking-tight">Belum Ada OC Terdaftar</h4>
-                            <p class="text-xs text-space-indigo/70 max-w-sm mt-1 mb-6">
-                                Kamu belum menyimpan karakter original sama sekali. Mulai petualangan kreatifmu sekarang!
-                            </p>
-                            
-                            <a href="{{ route('creator') }}" class="px-8 py-3.5 bg-princeton-orange hover:bg-orange-600 text-[#FFF8F0] font-black text-sm tracking-wider rounded-2xl shadow-xl shadow-princeton-orange/30 hover:scale-105 active:scale-95 transition-all duration-200 border-b-4 border-amber-800 flex items-center gap-3">
-                                <i class="fa-solid fa-plus-circle text-base"></i>
-                                <span>Bikin avatar sekarang!</span>
-                            </a>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        @else
-            <!-- ========================================================== -->
-            <!-- TAMPILAN JIKA BELUM LOGIN (Guest State -> Redirect Login)  -->
-            <!-- ========================================================== -->
-            <div class="w-full max-w-md bg-white/80 backdrop-blur-md border-2 border-space-indigo/15 rounded-3xl p-8 md:p-10 text-center shadow-xl flex flex-col items-center">
-                <div class="w-20 h-20 rounded-3xl bg-space-indigo text-jasmine flex items-center justify-center text-3xl mb-5 shadow-lg">
-                    <i class="fa-solid fa-user-lock"></i>
-                </div>
-                
-                <h2 class="text-2xl font-black text-space-indigo tracking-tight mb-2">
-                    Masuk ke Akun Avacrea
-                </h2>
-                <p class="text-xs font-medium text-space-indigo/70 leading-relaxed mb-7">
-                    Kamu belum masuk ke akun mana pun. Silakan login terlebih dahulu untuk melihat profil, menyimpan OC, dan mengelola koleksi avatarmu!
+                <p class="text-[10px] text-space-indigo/50 mt-2">
+                    Klik ikon kamera untuk mengganti foto
                 </p>
 
-                <div class="w-full flex flex-col gap-3">
-                    <a href="{{ route('login') }}" class="w-full py-3.5 bg-princeton-orange hover:bg-orange-600 text-white font-black text-sm tracking-wide rounded-2xl shadow-lg shadow-princeton-orange/30 transition active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-right-to-bracket"></i>
-                        <span>Masuk Sekarang</span>
-                    </a>
+                @error('image')
+                    <p class="text-xs text-rose-600 font-semibold mt-2">{{ $message }}</p>
+                @enderror
+            </form>
 
-                    @if (Route::has('register'))
-                        <a href="{{ route('register') }}" class="w-full py-3 bg-pearl-aqua/30 hover:bg-pearl-aqua/50 text-space-indigo font-extrabold text-xs tracking-wide rounded-2xl transition">
-                            Belum punya akun? Daftar
-                        </a>
-                    @endif
-                </div>
+            {{-- Nama User --}}
+            <h2 class="text-2xl md:text-3xl font-black tracking-tight text-space-indigo leading-tight">
+                {{ $user->name ?? 'Creator' }}
+            </h2>
+
+            {{-- Username --}}
+            <p class="text-xs md:text-sm font-bold text-princeton-orange mt-0.5 tracking-wide">
+                {{ '@' . ($user->username ?? 'user') }}
+            </p>
+        </div>
+
+        {{-- Section Daftar OC --}}
+        <div class="w-full max-w-7xl">
+            <div class="flex items-center justify-between mb-4 px-2">
+                <h3 class="text-base font-extrabold uppercase tracking-wider text-space-indigo/80 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-princeton-orange"></i>
+                    Daftar OC Kamu ({{ $ocs->count() }})
+                </h3>
             </div>
-        @endauth
 
+            {{-- Jika User Memiliki OC --}}
+            @if($ocs->count() > 0)
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    @foreach($ocs as $oc)
+                        <div class="relative group bg-white border-2 border-space-indigo/10 rounded-3xl overflow-hidden shadow-lg shadow-space-indigo/5 hover:shadow-2xl hover:border-princeton-orange/60 transition-all duration-300 flex flex-col aspect-square">
+
+                            {{-- Gambar OC --}}
+                            <div class="relative w-full flex-1 flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#FFF8F0] to-pearl-aqua/15 p-4">
+                                <img
+                                    src="{{ $oc->thumbnail ? asset('storage/' . $oc->thumbnail) : asset('Assets/Character/Base/base color.png') }}"
+                                    alt="{{ $oc->name }}"
+                                    class="h-full w-auto object-contain transition-transform duration-500 group-hover:scale-110 drop-shadow-md"
+                                >
+
+                                @if(!empty($oc->is_active))
+                                    <div class="absolute top-3 left-3 bg-princeton-orange text-[#FFF8F0] text-[10px] font-black tracking-wider uppercase px-2.5 py-1 rounded-full shadow">
+                                        Home Active
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Menu Titik Tiga --}}
+                            <div class="absolute top-3 right-3 z-30">
+                                <button
+                                    type="button"
+                                    onclick="toggleDropdown(event, 'menu-{{ $oc->id }}')"
+                                    class="w-9 h-9 rounded-2xl bg-[#FFF8F0]/90 backdrop-blur-md border border-space-indigo/10 hover:bg-space-indigo hover:text-jasmine flex items-center justify-center text-space-indigo shadow-md transition-all">
+                                    <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
+                                </button>
+
+                                {{-- Dropdown --}}
+                                <div
+                                    id="menu-{{ $oc->id }}"
+                                    class="hidden absolute right-0 mt-2 w-48 bg-space-indigo text-[#FFF8F0] rounded-2xl p-2 shadow-2xl border border-pearl-aqua/20 z-40 text-left">
+                                    <a href="{{ route('creator', ['edit' => $oc->id]) }}" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-white/10 transition text-floral-white">
+                                        <i class="fa-solid fa-pen text-jasmine"></i>
+                                        <span>Edit Avatar</span>
+                                    </a>
+
+                                    <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-white/10 transition text-floral-white">
+                                        <i class="fa-solid fa-star text-pearl-aqua"></i>
+                                        <span>Jadikan Thumbnail Home</span>
+                                    </button>
+
+                                    <hr class="border-pearl-aqua/10 my-1">
+
+                                    <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-rose-500/20 text-rose-300 transition">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                        <span>Hapus Avatar</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- Nama dan Deskripsi OC --}}
+                            <div class="absolute bottom-0 inset-x-0 bg-space-indigo/90 backdrop-blur-md text-[#FFF8F0] p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-20 flex flex-col justify-center">
+                                <p class="text-sm font-black truncate text-jasmine tracking-wide">
+                                    {{ $oc->name }}
+                                </p>
+                                <p class="text-[11px] text-pearl-aqua/90 line-clamp-1">
+                                    {{ $oc->description ?? 'Tidak ada deskripsi' }}
+                                </p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+            {{-- Jika User Belum Memiliki OC --}}
+            @else
+                <div class="w-full min-h-[300px] rounded-3xl border-2 border-dashed border-space-indigo/20 flex flex-col items-center justify-center text-center p-8 bg-white/40 shadow-sm">
+                    <div class="w-16 h-16 rounded-3xl bg-pearl-aqua/30 flex items-center justify-center text-space-indigo text-2xl mb-3 shadow-inner">
+                        <i class="fa-solid fa-ghost"></i>
+                    </div>
+
+                    <h4 class="text-xl font-extrabold text-space-indigo tracking-tight">
+                        Belum Ada OC Terdaftar
+                    </h4>
+
+                    <p class="text-xs text-space-indigo/70 max-w-sm mt-1 mb-5">
+                        Kamu belum menyimpan karakter original sama sekali.
+                        Mulai petualangan kreatifmu sekarang!
+                    </p>
+
+                    <a href="{{ route('creator') }}"
+                       class="px-8 py-3.5 bg-princeton-orange hover:bg-orange-600 text-[#FFF8F0] font-black text-sm tracking-wider rounded-2xl shadow-xl shadow-princeton-orange/30 hover:scale-105 active:scale-95 transition-all duration-200 border-b-4 border-amber-800 flex items-center gap-3">
+                        <i class="fa-solid fa-plus-circle text-base"></i>
+                        <span>Bikin avatar sekarang!</span>
+                    </a>
+                </div>
+            @endif
+        </div>
     </main>
 
     <!-- Bottom Navbar -->
-    <nav class="h-20 bg-space-indigo px-8 flex items-center justify-around z-30 shadow-2xl border-t border-space-indigo shrink-0">
-        <!-- Home -->
-        <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-1.5 text-pearl-aqua/80 hover:text-pearl-aqua group transition">
-            <div class="w-11 h-11 rounded-2xl bg-transparent flex items-center justify-center transition-transform group-hover:scale-110">
-                <i class="fa-solid fa-house text-xl"></i>
-            </div>
-            <span class="text-xs font-semibold tracking-wider">Home</span>
-        </a>
+    @include('layouts.bottom-navbar')
 
-        <!-- Explore & Search -->
-        <a href="{{ route('explore') }}" class="flex flex-col items-center gap-1.5 text-pearl-aqua/80 hover:text-pearl-aqua group transition">
-            <div class="w-11 h-11 rounded-2xl bg-transparent flex items-center justify-center transition-transform group-hover:scale-110">
-                <i class="fa-solid fa-compass text-xl"></i>
-            </div>
-            <span class="text-xs font-semibold tracking-wider">Explore & Search</span>
-        </a>
-
-        <!-- Account (Active) -->
-        <a href="{{ route('profile') }}" class="flex flex-col items-center gap-1.5 text-jasmine group">
-            <div class="w-11 h-11 rounded-2xl bg-jasmine/20 flex items-center justify-center transition-transform group-hover:scale-110">
-                <i class="fa-solid fa-circle-user text-xl"></i>
-            </div>
-            <span class="text-xs font-bold tracking-wider">Account</span>
-        </a>
-    </nav>
-
+    {{-- Dropdown Script --}}
     <script>
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+
+            if (!file) return;
+
+            const preview = document.getElementById('photoPreview');
+            const initial = document.getElementById('photoInitial');
+            const saveButton = document.getElementById('savePhotoButton');
+
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('hidden');
+            initial.classList.add('hidden');
+            saveButton.classList.remove('hidden');
+        }
+
         function toggleDropdown(event, menuId) {
             event.stopPropagation();
             document.querySelectorAll('[id^="menu-"]').forEach(menu => {
-                if (menu.id !== menuId) menu.classList.add('hidden');
+                if (menu.id !== menuId) {
+                    menu.classList.add('hidden');
+                }
             });
             const targetMenu = document.getElementById(menuId);
             if (targetMenu) {
@@ -248,7 +255,9 @@
         }
 
         window.addEventListener('click', () => {
-            document.querySelectorAll('[id^="menu-"]').forEach(menu => menu.classList.add('hidden'));
+            document.querySelectorAll('[id^="menu-"]').forEach(menu => {
+                menu.classList.add('hidden');
+            });
         });
     </script>
 </body>
