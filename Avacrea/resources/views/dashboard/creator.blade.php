@@ -42,6 +42,23 @@
             pointer-events: none;
             user-select: none;
         }
+        /* Styling native color wheel agar berbentuk lingkaran rapi */
+        input[type="color"].color-wheel-input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="color"].color-wheel-input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"].color-wheel-input::-webkit-color-swatch {
+            border-radius: 9999px;
+            border: 3px solid #FFF8F0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
     </style>
 </head>
 <body style="background-color: #FFF8F0 !important; color-scheme: light;" class="text-space-indigo h-screen w-screen overflow-hidden flex flex-col font-sans select-none">
@@ -66,21 +83,23 @@
     <!-- Main Studio Workspace -->
     <main class="flex-1 flex flex-col lg:flex-row gap-6 px-6 md:px-10 py-5 overflow-hidden">
 
-        <!-- KOLOM KIRI: Preview Canvas -->
+        <!-- ============================================================== -->
+        <!-- KOLOM KIRI: Preview Canvas, Input Nama OC, & 4 Tombol Utama     -->
+        <!-- ============================================================== -->
         <section class="w-full lg:w-[36%] h-full flex flex-col justify-between gap-4 shrink-0">
             <div class="relative flex-1 w-full bg-white rounded-[2rem] border-[3px] border-space-indigo p-3 shadow-lg flex items-center justify-center overflow-hidden">
                 <div id="previewBg" style="background-color: #9DD9D2;" class="relative w-full h-full rounded-[1.4rem] overflow-hidden flex items-end justify-center transition-colors duration-300">
                     
                     <div class="absolute -top-6 -left-6 w-36 h-36 rounded-full bg-white/25 pointer-events-none"></div>
 
-                    <!-- LAYER Z-INDEX RENDAH (Rambut Belakang di belakang badan) -->
+                    <!-- LAYER Z-INDEX RENDAH (Rambut Belakang) -->
                     <div id="canvas-back-layers" class="absolute inset-0 z-[5] pointer-events-none"></div>
 
                     <!-- LAYER TUBUH DASAR (Base Color & Lineart) -->
-                    <img src="{{ $baseAssets['color'] }}" alt="Base Color" id="layer-skin" class="canvas-layer z-10">
-                    <img src="{{ $baseAssets['lineart'] }}" alt="Base Lineart" class="canvas-layer z-20">
+                    <img src="{{ $baseAssets['color'] }}" alt="Base Color" id="layer-skin-color" class="canvas-layer z-10">
+                    <img src="{{ $baseAssets['lineart'] }}" alt="Base Lineart" id="layer-skin-lineart" class="canvas-layer z-20">
 
-                    <!-- LAYER Z-INDEX TINGGI (Baju, Mata, Mulut, Poni, Aksesori di depan badan) -->
+                    <!-- LAYER Z-INDEX TINGGI (Baju, Mata, Mulut, Poni, Aksesori) -->
                     <div id="canvas-front-layers" class="absolute inset-0 z-30 pointer-events-none"></div>
 
                     <!-- Badge Info -->
@@ -127,10 +146,12 @@
             </form>
         </section>
 
-        <!-- KOLOM KANAN: Panel Kustomisasi -->
-        <section class="w-full lg:w-[64%] h-full bg-space-indigo rounded-[2rem] p-6 flex flex-col gap-5 shadow-2xl overflow-hidden">
+        <!-- ============================================================== -->
+        <!-- KOLOM KANAN: Panel Kustomisasi + Color Wheel & Hex Copy         -->
+        <!-- ============================================================== -->
+        <section class="w-full lg:w-[64%] h-full bg-space-indigo rounded-[2rem] p-6 flex flex-col gap-4 shadow-2xl overflow-hidden">
             
-            <!-- Pill Tabs Kategori dari Database -->
+            <!-- Baris 1: Pill Tabs Kategori -->
             <div class="flex flex-wrap items-center gap-2 shrink-0" id="categoryTabsContainer">
                 @foreach($categories as $index => $cat)
                     <button type="button" 
@@ -145,22 +166,46 @@
                 @endforeach
             </div>
 
-            <!-- Palet Pilihan Warna -->
-            <div class="flex flex-wrap items-center gap-3 shrink-0 pb-1">
-                <span class="text-xs font-bold text-floral-white/90 mr-1">Warna</span>
-                <div class="flex flex-wrap items-center gap-2.5" id="colorSwatchesContainer">
-                    @foreach($colors as $cIndex => $color)
-                        <button type="button"
-                                onclick="selectColor('{{ $color['hex'] }}', this)"
-                                title="{{ $color['name'] }}"
-                                style="background-color: {{ $color['hex'] }};"
-                                class="color-swatch w-7 h-7 rounded-full transition-transform hover:scale-115 focus:outline-none {{ $cIndex === 3 ? 'ring-2 ring-white ring-offset-2 ring-offset-space-indigo scale-110' : 'border-2 border-white/30' }}">
+            <!-- Baris 2: Kontrol Warna Dinamis (Sub-Layer Tabs + Color Wheel + Hex Copy) -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white/10 border border-white/10 px-4 py-3 rounded-2xl shrink-0">
+                
+                <!-- Kiri: Pilihan Target Layer (Lineart, Colour 1, Colour 2, dst.) -->
+                <div class="flex flex-wrap items-center gap-2" id="subLayerTabsContainer">
+                    <!-- Di-render dinamis sesuai jumlah colour pada item yang aktif -->
+                </div>
+
+                <!-- Kanan: Color Wheel + Hex Code + Tombol Copy -->
+                <div class="flex items-center gap-2.5 ml-auto">
+                    <label for="colorWheelInput" class="flex items-center gap-2 cursor-pointer group" title="Pilih Warna dari Color Wheel">
+                        <span class="text-[11px] font-bold text-floral-white/80 group-hover:text-white">Color Wheel</span>
+                        <input type="color" 
+                               id="colorWheelInput" 
+                               value="#9DD9D2"
+                               oninput="handleColorWheelChange(this.value)"
+                               class="color-wheel-input w-9 h-9 rounded-full shrink-0 transition-transform group-hover:scale-110">
+                    </label>
+
+                    <!-- Box Kode Hex + Copy Button -->
+                    <div class="flex items-center bg-space-indigo/90 border border-white/20 rounded-xl overflow-hidden shadow-inner">
+                        <input type="text" 
+                               id="hexCodeInput" 
+                               value="#9DD9D2" 
+                               maxlength="7"
+                               onchange="handleHexTextInput(this.value)"
+                               class="w-20 px-2.5 py-1.5 bg-transparent text-xs font-mono font-black text-jasmine uppercase focus:outline-none text-center">
+                        
+                        <button type="button" 
+                                onclick="copyCurrentHex()" 
+                                id="copyHexBtn"
+                                title="Salin Kode Hex"
+                                class="px-2.5 py-1.5 bg-white/10 hover:bg-princeton-orange text-white text-xs transition flex items-center gap-1">
+                            <i class="fa-regular fa-copy" id="copyHexIcon"></i>
                         </button>
-                    @endforeach
+                    </div>
                 </div>
             </div>
 
-            <!-- Grid Pilihan Item (Hanya menampilkan item asli dari DB, tanpa kotak dummy) -->
+            <!-- Baris 3: Grid Pilihan Item -->
             <div class="flex-1 bg-[#FFF8F0] rounded-[1.5rem] p-5 overflow-y-auto no-scrollbar shadow-inner">
                 <div id="assetGridContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     <!-- Di-render dinamis oleh JS -->
@@ -181,9 +226,12 @@
 
     <script>
         const categoriesData = @json($categories);
-        const availableColors = @json($colors);
+        const baseSkinColorUrl = "{{ $baseAssets['color'] }}";
+        const baseSkinLineartUrl = "{{ $baseAssets['lineart'] }}";
 
-        // Urutan tumpukan layer
+        // Cache hasil gambar PNG yang sudah diwarnai (DataURL) agar ringan saat ganti-ganti warna
+        const tintedImageCache = {};
+
         const zOrderMap = {
             back_hair: 5,
             clothes: 25,
@@ -199,14 +247,19 @@
 
         const ocState = {
             activeCategory: categoriesData.length > 0 ? categoriesData[0].id : 'background',
+            activeSubLayer: 'color1', // 'lineart' | 'color1' | 'extra_0' | 'extra_1' ...
             selections: {}
         };
 
-        // Inisialisasi pilihan awal kosong (null) untuk semua kategori
+        // Inisialisasi state warna per kategori (lineart, color1, extras)
         categoriesData.forEach(cat => {
             ocState.selections[cat.id] = {
                 asset: null,
-                color: cat.id === 'background' ? '#9DD9D2' : '#392F5A'
+                colors: {
+                    lineart: '#26232D',
+                    color1: cat.id === 'background' ? '#9DD9D2' : (cat.id === 'skin' ? '#E5C69E' : '#FF8811'),
+                    extras: [] // Array warna dinamis untuk extra_colors[0], [1], dst.
+                }
             };
         });
 
@@ -214,8 +267,50 @@
             return categoriesData.find(c => c.id === ocState.activeCategory);
         }
 
+    // =========================================================================
+        // ENGINE PEWARNAAN AKURAT 100% (Source-In Fill + Preserve Alpha)
+        // =========================================================================
+        function getTintedDataUrl(imgUrl, hexColor) {
+            return new Promise((resolve) => {
+                if (!hexColor) return resolve(imgUrl);
+
+                const cacheKey = `${imgUrl}__${hexColor.toUpperCase()}`;
+                if (tintedImageCache[cacheKey]) {
+                    return resolve(tintedImageCache[cacheKey]);
+                }
+
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+
+                    // 1. Gambar bentuk/siluet PNG asli beserta transparansi & anti-aliasing-nya
+                    ctx.drawImage(img, 0, 0);
+
+                    // 2. Ganti seluruh piksel berisi dengan warna hex exact 100% (tanpa menggelapkan)
+                    ctx.globalCompositeOperation = 'source-in';
+                    ctx.fillStyle = hexColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const resultUrl = canvas.toDataURL('image/png');
+                    tintedImageCache[cacheKey] = resultUrl;
+                    resolve(resultUrl);
+                };
+                img.onerror = function () {
+                    resolve(imgUrl);
+                };
+                img.src = imgUrl;
+            });
+        }
+        // =========================================================================
+        // NAVIGASI KATEGORI & SUB-LAYER WARNA
+        // =========================================================================
         function selectCategory(catId) {
             ocState.activeCategory = catId;
+            ocState.activeSubLayer = 'color1'; // Default fokus ke Colour 1 saat pindah kategori
 
             document.querySelectorAll('.category-pill').forEach(btn => {
                 if (btn.dataset.catId === catId) {
@@ -225,30 +320,161 @@
                 }
             });
 
+            renderSubLayerControls();
             renderAssetGrid();
             updateBadgeInfo();
         }
 
-        function selectColor(hexColor, btnElement) {
-            const cat = ocState.activeCategory;
-            if (!ocState.selections[cat]) return;
+        function selectSubLayer(layerKey) {
+            ocState.activeSubLayer = layerKey;
+            renderSubLayerControls();
+        }
 
-            ocState.selections[cat].color = hexColor;
+        // Render tombol sub-layer sesuai jumlah colour pada item yang dipilih
+        function renderSubLayerControls() {
+            const container = document.getElementById('subLayerTabsContainer');
+            const catId = ocState.activeCategory;
+            const sel = ocState.selections[catId];
+            if (!sel) return;
 
-            document.querySelectorAll('.color-swatch').forEach(el => {
-                el.classList.remove('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-space-indigo', 'scale-110');
-                el.classList.add('border-2', 'border-white/30');
-            });
-            btnElement.classList.remove('border-2', 'border-white/30');
-            btnElement.classList.add('ring-2', 'ring-white', 'ring-offset-2', 'ring-offset-space-indigo', 'scale-110');
+            let tabs = [];
 
+            if (catId === 'background') {
+                tabs = [{ key: 'color1', label: 'Warna Background' }];
+            } else if (catId === 'skin') {
+                tabs = [
+                    { key: 'color1', label: 'Warna Kulit' },
+                    { key: 'lineart', label: 'Lineart' }
+                ];
+            } else {
+                // Untuk item aset: selalu ada Lineart & Colour 1, ditambah Colour 2, 3, dst. sesuai jumlah extra_colors
+                tabs = [
+                    { key: 'lineart', label: 'Lineart' },
+                    { key: 'color1', label: 'Colour 1' }
+                ];
+
+                const extraCount = (sel.asset && sel.asset.extra_colors) ? sel.asset.extra_colors.length : 0;
+                for (let i = 0; i < extraCount; i++) {
+                    // Pastikan array warna extra terisi default jika belum ada
+                    if (!sel.colors.extras[i]) {
+                        sel.colors.extras[i] = '#F4D06F';
+                    }
+                    tabs.push({
+                        key: `extra_${i}`,
+                        label: `Colour ${i + 2}`
+                    });
+                }
+            }
+
+            // Pastikan activeSubLayer valid untuk tab yang tersedia
+            if (!tabs.some(t => t.key === ocState.activeSubLayer)) {
+                ocState.activeSubLayer = tabs[0].key;
+            }
+
+            // Render tombol sub-layer beserta bulatan indikator warnanya
+            container.innerHTML = tabs.map(tab => {
+                const isActive = ocState.activeSubLayer === tab.key;
+                const dotColor = getLayerHexColor(catId, tab.key);
+
+                return `
+                    <button type="button" 
+                            onclick="selectSubLayer('${tab.key}')"
+                            class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${isActive ? 'bg-jasmine text-space-indigo shadow' : 'bg-white/10 text-floral-white/80 hover:bg-white/20'}">
+                        <span class="w-3.5 h-3.5 rounded-full border border-black/30 shrink-0" style="background-color: ${dotColor};"></span>
+                        <span>${tab.label}</span>
+                    </button>
+                `;
+            }).join('');
+
+            // Sinkronkan nilai Color Wheel & Input Hex dengan warna layer aktif
+            const activeHex = getLayerHexColor(catId, ocState.activeSubLayer);
+            document.getElementById('colorWheelInput').value = activeHex;
+            document.getElementById('hexCodeInput').value = activeHex.toUpperCase();
+        }
+
+        function getLayerHexColor(catId, layerKey) {
+            const colors = ocState.selections[catId].colors;
+            if (layerKey === 'lineart') return colors.lineart;
+            if (layerKey === 'color1') return colors.color1;
+            if (layerKey.startsWith('extra_')) {
+                const idx = parseInt(layerKey.split('_')[1], 10);
+                return colors.extras[idx] || '#F4D06F';
+            }
+            return '#FFFFFF';
+        }
+
+        function setLayerHexColor(catId, layerKey, hex) {
+            const colors = ocState.selections[catId].colors;
+            if (layerKey === 'lineart') colors.lineart = hex;
+            else if (layerKey === 'color1') colors.color1 = hex;
+            else if (layerKey.startsWith('extra_')) {
+                const idx = parseInt(layerKey.split('_')[1], 10);
+                colors.extras[idx] = hex;
+            }
+        }
+
+        // =========================================================================
+        // HANDLER COLOR WHEEL, INPUT HEX MANUAL, & COPY HEX
+        // =========================================================================
+        function handleColorWheelChange(hexValue) {
+            const formattedHex = hexValue.toUpperCase();
+            document.getElementById('hexCodeInput').value = formattedHex;
+
+            setLayerHexColor(ocState.activeCategory, ocState.activeSubLayer, formattedHex);
+            renderSubLayerControls();
             renderCanvasLayers();
         }
 
+        function handleHexTextInput(rawValue) {
+            let clean = rawValue.trim();
+            if (!clean.startsWith('#')) clean = '#' + clean;
+
+            if (/^#[0-9A-Fa-f]{6}$/.test(clean)) {
+                const upper = clean.toUpperCase();
+                document.getElementById('colorWheelInput').value = upper;
+                document.getElementById('hexCodeInput').value = upper;
+                setLayerHexColor(ocState.activeCategory, ocState.activeSubLayer, upper);
+                renderSubLayerControls();
+                renderCanvasLayers();
+            } else {
+                // Kembalikan ke warna valid sebelumnya jika format hex salah
+                const validHex = getLayerHexColor(ocState.activeCategory, ocState.activeSubLayer);
+                document.getElementById('hexCodeInput').value = validHex.toUpperCase();
+            }
+        }
+
+        function copyCurrentHex() {
+            const hexText = document.getElementById('hexCodeInput').value;
+            navigator.clipboard.writeText(hexText).then(() => {
+                const btn = document.getElementById('copyHexBtn');
+                const icon = document.getElementById('copyHexIcon');
+                btn.classList.add('bg-emerald-500');
+                icon.className = 'fa-solid fa-check';
+
+                setTimeout(() => {
+                    btn.classList.remove('bg-emerald-500');
+                    icon.className = 'fa-regular fa-copy';
+                }, 1200);
+            });
+        }
+
+        // =========================================================================
+        // PEMILIHAN ITEM ASET & RENDER KANVAS
+        // =========================================================================
         function selectAssetItem(assetObj) {
             const cat = ocState.activeCategory;
             ocState.selections[cat].asset = assetObj;
 
+            // Siapkan slot warna default untuk extra_colors jika item baru punya > 1 warna
+            if (assetObj && assetObj.extra_colors) {
+                assetObj.extra_colors.forEach((_, idx) => {
+                    if (!ocState.selections[cat].colors.extras[idx]) {
+                        ocState.selections[cat].colors.extras[idx] = '#F4D06F';
+                    }
+                });
+            }
+
+            renderSubLayerControls();
             renderAssetGrid();
             renderCanvasLayers();
             updateBadgeInfo();
@@ -263,18 +489,17 @@
             const assets = catObj.assets || [];
             let html = '';
 
-            // Slot 1: Tombol Kosong / Lepas Item (selalu ada)
+            // Slot 1: Kosong / Lepas
             const isNoneSelected = currentSel.asset === null;
             html += `
                 <button type="button" onclick='selectAssetItem(null)'
-                        title="Kosongkan / Lepas"
                         class="aspect-square rounded-2xl bg-white border-2 ${isNoneSelected ? 'border-princeton-orange ring-2 ring-princeton-orange/30' : 'border-space-indigo/10 hover:border-space-indigo/30'} flex flex-col items-center justify-center gap-1.5 transition-all shadow-sm group">
                     <i class="fa-solid fa-ban text-2xl ${isNoneSelected ? 'text-princeton-orange' : 'text-space-indigo/30 group-hover:text-space-indigo/60'}"></i>
                     <span class="text-[10px] font-bold text-space-indigo/40">Kosong</span>
                 </button>
             `;
 
-            // Render HANYA aset asli yang ada di database (kalau kosong ya tidak render kotak ungu lagi)
+            // Render item asli dari database
             assets.forEach(asset => {
                 const isSelected = currentSel.asset && currentSel.asset.id === asset.id;
                 const assetJson = JSON.stringify(asset).replace(/'/g, "&#39;");
@@ -306,43 +531,60 @@
             grid.innerHTML = html;
         }
 
-        function renderCanvasLayers() {
-            // 1. Update warna background kanvas
+        async function renderCanvasLayers() {
+            // 1. Update warna Background
             const bgSel = ocState.selections['background'];
-            document.getElementById('previewBg').style.backgroundColor = bgSel ? bgSel.color : '#9DD9D2';
+            document.getElementById('previewBg').style.backgroundColor = bgSel ? bgSel.colors.color1 : '#9DD9D2';
+
+            // 2. Update warna Kulit Dasar (Skin)
+            const skinSel = ocState.selections['skin'];
+            if (skinSel) {
+                const tintedSkinColor = await getTintedDataUrl(baseSkinColorUrl, skinSel.colors.color1);
+                const tintedSkinLineart = await getTintedDataUrl(baseSkinLineartUrl, skinSel.colors.lineart);
+                document.getElementById('layer-skin-color').src = tintedSkinColor;
+                document.getElementById('layer-skin-lineart').src = tintedSkinLineart;
+            }
 
             const backContainer = document.getElementById('canvas-back-layers');
             const frontContainer = document.getElementById('canvas-front-layers');
             let backHtml = '';
             let frontHtml = '';
 
-            // 2. Susun semua layer aktif dari tiap kategori
-            Object.keys(ocState.selections).forEach(catSlug => {
-                if (catSlug === 'background' || catSlug === 'skin') return;
+            // 3. Render & warnai setiap layer item aktif
+            for (const catSlug of Object.keys(ocState.selections)) {
+                if (catSlug === 'background' || catSlug === 'skin') continue;
 
-                const item = ocState.selections[catSlug].asset;
-                if (!item) return;
+                const sel = ocState.selections[catSlug];
+                const item = sel.asset;
+                if (!item) continue;
 
                 const zBase = zOrderMap[catSlug] || 25;
                 let layerGroup = '';
 
-                // Render Extra Colors (jika ada)
+                // Extra Colors (Colour 2, Colour 3, dst.)
                 if (item.extra_colors && item.extra_colors.length > 0) {
-                    item.extra_colors.forEach((url, idx) => {
-                        layerGroup += `<img src="${url}" class="canvas-layer" style="z-index: ${zBase};">`;
-                    });
+                    for (let idx = 0; idx < item.extra_colors.length; idx++) {
+                        const rawUrl = item.extra_colors[idx];
+                        const hex = sel.colors.extras[idx] || '#F4D06F';
+                        const tintedUrl = await getTintedDataUrl(rawUrl, hex);
+                        layerGroup += `<img src="${tintedUrl}" class="canvas-layer" style="z-index: ${zBase};">`;
+                    }
                 }
 
-                // Render Color 1 + Lineart
-                layerGroup += `<img src="${item.color1_url}" class="canvas-layer" style="z-index: ${zBase};">`;
-                layerGroup += `<img src="${item.lineart_url}" class="canvas-layer" style="z-index: ${zBase + 1};">`;
+                // Colour 1 (Base Color item)
+                const tintedColor1 = await getTintedDataUrl(item.color1_url, sel.colors.color1);
+                layerGroup += `<img src="${tintedColor1}" class="canvas-layer" style="z-index: ${zBase};">`;
+
+                // Lineart item
+                const tintedLineart = await getTintedDataUrl(item.lineart_url, sel.colors.lineart);
+                layerGroup += `<img src="${tintedLineart}" class="canvas-layer" style="z-index: ${zBase + 1};">`;
 
                 if (catSlug === 'back_hair') {
                     backHtml += layerGroup;
                 } else {
                     frontHtml += layerGroup;
                 }
-            });
+            }
 
             backContainer.innerHTML = backHtml;
             frontContainer.innerHTML = frontHtml;
@@ -359,17 +601,26 @@
                 : `${catObj.name} (${catObj.assets.length} item)`;
         }
 
+        function getRandomHex() {
+            return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0').toUpperCase();
+        }
+
         function randomizeOc() {
             categoriesData.forEach(cat => {
-                const randomColorObj = availableColors[Math.floor(Math.random() * availableColors.length)];
-                ocState.selections[cat.id].color = randomColorObj.hex;
+                const sel = ocState.selections[cat.id];
+                sel.colors.color1 = getRandomHex();
+                sel.colors.lineart = '#26232D';
 
                 if (cat.assets && cat.assets.length > 0) {
                     const randomAsset = cat.assets[Math.floor(Math.random() * cat.assets.length)];
-                    ocState.selections[cat.id].asset = randomAsset;
+                    sel.asset = randomAsset;
+                    if (randomAsset.extra_colors) {
+                        sel.colors.extras = randomAsset.extra_colors.map(() => getRandomHex());
+                    }
                 }
             });
 
+            renderSubLayerControls();
             renderAssetGrid();
             renderCanvasLayers();
             document.getElementById('activeBadgeInfo').innerText = 'Randomized!';
@@ -378,15 +629,23 @@
         function resetCanvas() {
             document.getElementById('ocNameInput').value = '';
             categoriesData.forEach(cat => {
-                ocState.selections[cat.id].asset = null;
-                ocState.selections[cat.id].color = cat.id === 'background' ? '#9DD9D2' : '#392F5A';
+                ocState.selections[cat.id] = {
+                    asset: null,
+                    colors: {
+                        lineart: '#26232D',
+                        color1: cat.id === 'background' ? '#9DD9D2' : (cat.id === 'skin' ? '#E5C69E' : '#FF8811'),
+                        extras: []
+                    }
+                };
             });
+            renderSubLayerControls();
             renderAssetGrid();
             renderCanvasLayers();
             updateBadgeInfo();
         }
 
         // Inisialisasi awal
+        renderSubLayerControls();
         renderAssetGrid();
         renderCanvasLayers();
         updateBadgeInfo();

@@ -38,11 +38,11 @@ class AdminController extends Controller
             'color_1'        => 'required|image|mimes:png|max:5120',
             'extra_colors'   => 'nullable|array',
             'extra_colors.*' => 'image|mimes:png|max:5120',
+            'shading'        => 'nullable|image|mimes:png|max:5120',
         ]);
 
         $category = AssetCategory::findOrFail($request->category_id);
 
-        // Auto-naming berurutan: 1_hair, 2_hair, dst.
         $countInCat = Asset::where('category_id', $category->id)->count();
         $nextNumber = $countInCat + 1;
         $autoName = "{$nextNumber}_{$category->slug}";
@@ -64,15 +64,23 @@ class AdminController extends Controller
         $request->file('color_1')->move($destination, $color1File);
         $color1Path = "{$folderPath}/{$color1File}";
 
-        // 3. Extra Colors (Color 2, 3, 4, dst. - Dinamis tanpa batas)
+        // 3. Extra Colors (Dinamis)
         $extraColorPaths = [];
         if ($request->hasFile('extra_colors')) {
             foreach ($request->file('extra_colors') as $index => $file) {
-                $colorNum = $index + 2; // Dimulai dari color2, color3, dst.
+                $colorNum = $index + 2;
                 $extraFileName = "{$autoName}_color{$colorNum}.png";
                 $file->move($destination, $extraFileName);
                 $extraColorPaths[] = "{$folderPath}/{$extraFileName}";
             }
+        }
+
+        // 4. Shading (Opsional)
+        $shadingPath = null;
+        if ($request->hasFile('shading')) {
+            $shadingFile = "{$autoName}_shading.png";
+            $request->file('shading')->move($destination, $shadingFile);
+            $shadingPath = "{$folderPath}/{$shadingFile}";
         }
 
         Asset::create([
@@ -82,10 +90,12 @@ class AdminController extends Controller
             'lineart_path' => $lineartPath,
             'color1_path'  => $color1Path,
             'extra_colors' => $extraColorPaths,
+            'shading_path' => $shadingPath,
         ]);
 
         $totalColors = 1 + count($extraColorPaths);
-        return back()->with('success', "Item {$autoName} berhasil ditambahkan (1 Lineart + {$totalColors} Layer Colour)!");
+        $shadingInfo = $shadingPath ? ' + 1 Shading' : '';
+        return back()->with('success', "Item {$autoName} berhasil ditambahkan (1 Lineart + {$totalColors} Colour{$shadingInfo})!");
     }
 
     public function update(Request $request, $id)
@@ -98,6 +108,7 @@ class AdminController extends Controller
             'color_1'        => 'nullable|image|mimes:png|max:5120',
             'extra_colors'   => 'nullable|array',
             'extra_colors.*' => 'image|mimes:png|max:5120',
+            'shading'        => 'nullable|image|mimes:png|max:5120',
         ]);
 
         $category = $asset->category;
@@ -125,7 +136,6 @@ class AdminController extends Controller
             $asset->image_path  = $asset->color1_path;
         }
 
-        // Jika upload tambahan layer colour baru di modal Edit, append ke daftar extra_colors
         if ($request->hasFile('extra_colors')) {
             $currentExtras = $asset->extra_colors ?? [];
             $startNum = count($currentExtras) + 2;
@@ -139,6 +149,15 @@ class AdminController extends Controller
             $asset->extra_colors = $currentExtras;
         }
 
+        if ($request->hasFile('shading')) {
+            if ($asset->shading_path && File::exists(public_path($asset->shading_path))) {
+                File::delete(public_path($asset->shading_path));
+            }
+            $shadingFile = "{$asset->name}_shading_" . time() . ".png";
+            $request->file('shading')->move($destination, $shadingFile);
+            $asset->shading_path = "{$folderPath}/{$shadingFile}";
+        }
+
         $asset->save();
 
         return back()->with('success', "Item {$asset->name} berhasil diperbarui!");
@@ -149,7 +168,7 @@ class AdminController extends Controller
         $asset = Asset::findOrFail($id);
 
         $allPaths = array_merge(
-            [$asset->lineart_path, $asset->color1_path],
+            [$asset->lineart_path, $asset->color1_path, $asset->shading_path],
             $asset->extra_colors ?? []
         );
 

@@ -120,16 +120,19 @@
                     <tbody class="divide-y divide-space-indigo/10 text-sm">
                         @forelse($assets as $asset)
                             <tr class="hover:bg-floral-white/80 transition">
-                                <!-- Preview Tumpukan Semua Layer -->
+                                <!-- Preview Tumpukan Semua Layer (Color -> Extra Colors -> Shading -> Lineart) -->
                                 <td class="py-3 px-6">
                                     <div class="relative w-20 h-20 rounded-2xl bg-pearl-aqua/20 border border-space-indigo/15 flex items-center justify-center overflow-hidden">
+                                        @if($asset->color1_path)
+                                            <img src="{{ asset($asset->color1_path) }}" class="absolute inset-0 w-full h-full object-contain z-10">
+                                        @endif
                                         @if(!empty($asset->extra_colors))
-                                            @foreach(array_reverse($asset->extra_colors) as $idx => $extraPath)
-                                                <img src="{{ asset($extraPath) }}" class="absolute inset-0 w-full h-full object-contain" style="z-index: {{ 10 + $idx }};">
+                                            @foreach($asset->extra_colors as $idx => $extraPath)
+                                                <img src="{{ asset($extraPath) }}" class="absolute inset-0 w-full h-full object-contain" style="z-index: {{ 15 + $idx }};">
                                             @endforeach
                                         @endif
-                                        @if($asset->color1_path)
-                                            <img src="{{ asset($asset->color1_path) }}" class="absolute inset-0 w-full h-full object-contain z-20">
+                                        @if($asset->shading_path)
+                                            <img src="{{ asset($asset->shading_path) }}" class="absolute inset-0 w-full h-full object-contain z-25">
                                         @endif
                                         @if($asset->lineart_path)
                                             <img src="{{ asset($asset->lineart_path) }}" class="absolute inset-0 w-full h-full object-contain z-30">
@@ -160,8 +163,13 @@
                                             <i class="fa-solid fa-pen-nib mr-1"></i>1 Lineart
                                         </span>
                                         <span class="px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800">
-                                            <i class="fa-solid fa-palette mr-1"></i>{{ $totalColors }} Layer Colour
+                                            <i class="fa-solid fa-palette mr-1"></i>{{ $totalColors }} Colour
                                         </span>
+                                        @if($asset->shading_path)
+                                            <span class="px-2.5 py-1 rounded-lg bg-purple-100 text-purple-800">
+                                                <i class="fa-solid fa-circle-half-stroke mr-1"></i>1 Shading
+                                            </span>
+                                        @endif
                                     </div>
                                 </td>
 
@@ -199,7 +207,7 @@
     </main>
 
     <!-- =================================================================== -->
-    <!-- MODAL 1: TAMBAH ITEM BARU (1 Lineart + Multi Layer Colour Dinamis)  -->
+    <!-- MODAL 1: TAMBAH ITEM BARU (Lineart + Multi Colour + Shading)        -->
     <!-- =================================================================== -->
     <div id="addModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-space-indigo/70 backdrop-blur-sm">
         <div class="w-full max-w-lg max-h-[90vh] flex flex-col bg-[#FFF8F0] rounded-3xl border-2 border-space-indigo/20 shadow-2xl overflow-hidden">
@@ -221,32 +229,51 @@
                     </select>
                 </div>
 
-                <!-- File 1: Lineart (WAJIB) -->
+                <!-- ITEM 1: LINEART (WAJIB) -->
                 <div class="p-3.5 rounded-2xl bg-white border-2 border-space-indigo/15">
                     <label class="flex items-center justify-between text-xs font-black text-space-indigo mb-1.5">
-                        <span>1. File Lineart (PNG Transparan)</span>
-                        <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px]">WAJIB</span>
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-pen-nib text-space-indigo"></i>
+                            1. File Lineart (PNG Transparan)
+                        </span>
+                        <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold">WAJIB</span>
                     </label>
                     <input type="file" name="lineart" accept="image/png" required class="w-full text-xs text-space-indigo file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-space-indigo file:text-white hover:file:bg-space-indigo/90">
                 </div>
 
-                <!-- File 2: Color 1 / Base Color (WAJIB) -->
-                <div class="p-3.5 rounded-2xl bg-white border-2 border-space-indigo/15">
-                    <label class="flex items-center justify-between text-xs font-black text-space-indigo mb-1.5">
-                        <span>2. File Colour Utama / Color 1 (PNG)</span>
-                        <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px]">WAJIB</span>
-                    </label>
-                    <input type="file" name="color_1" accept="image/png" required class="w-full text-xs text-space-indigo file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-princeton-orange file:text-white hover:file:bg-orange-600">
+                <!-- ITEM 2: COLOUR UTAMA + DINAMIS (WAJIB) -->
+                <div class="p-3.5 rounded-2xl bg-white border-2 border-space-indigo/15 flex flex-col gap-3">
+                    <div>
+                        <label class="flex items-center justify-between text-xs font-black text-space-indigo mb-1.5">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-palette text-princeton-orange"></i>
+                                2. File Colour Utama / Color 1 (PNG)
+                            </span>
+                            <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-extrabold">WAJIB</span>
+                        </label>
+                        <input type="file" name="color_1" accept="image/png" required class="w-full text-xs text-space-indigo file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-princeton-orange file:text-white hover:file:bg-orange-600">
+                    </div>
+
+                    <!-- Container Colour Tambahan (Color 2, Color 3, dst.) -->
+                    <div id="addExtraColorsContainer" class="flex flex-col gap-2.5"></div>
+
+                    <button type="button" onclick="addColorSlot('addExtraColorsContainer')" class="w-full py-2 px-3 rounded-xl border-2 border-dashed border-space-indigo/25 hover:border-princeton-orange hover:bg-floral-white text-space-indigo font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-plus-circle text-princeton-orange"></i>
+                        <span>Tambah Layer Colour (Color 2, 3, dst.)</span>
+                    </button>
                 </div>
 
-                <!-- Container Dinamis untuk Colour Tambahan (Color 2, Color 3, dst.) -->
-                <div id="addExtraColorsContainer" class="flex flex-col gap-3"></div>
-
-                <!-- Tombol Tambah Layer Colour -->
-                <button type="button" onclick="addColorSlot('addExtraColorsContainer')" class="w-full py-2.5 px-4 rounded-2xl border-2 border-dashed border-space-indigo/30 hover:border-princeton-orange hover:bg-white text-space-indigo font-extrabold text-xs flex items-center justify-center gap-2 transition">
-                    <i class="fa-solid fa-plus-circle text-princeton-orange text-sm"></i>
-                    <span>Tambah Layer Colour (Color 2, 3, dst.)</span>
-                </button>
+                <!-- ITEM 3: SHADING (OPSIONAL - UI KHUSUS SEPERTI LINEART) -->
+                <div class="p-3.5 rounded-2xl bg-white border-2 border-space-indigo/15">
+                    <label class="flex items-center justify-between text-xs font-black text-space-indigo mb-1.5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-half-stroke text-purple-600"></i>
+                            3. File Shading / Bayangan (PNG Transparan)
+                        </span>
+                        <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-extrabold">OPSIONAL</span>
+                    </label>
+                    <input type="file" name="shading" accept="image/png" class="w-full text-xs text-space-indigo file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-700 file:text-white hover:file:bg-purple-800">
+                </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 shrink-0">
                     <button type="button" onclick="closeAddModal()" class="px-5 py-2.5 rounded-xl bg-zinc-200 hover:bg-zinc-300 text-space-indigo font-bold text-xs">Batal</button>
@@ -277,23 +304,48 @@
 
                 <p class="text-[11px] font-bold text-princeton-orange">*Biarkan file kosong jika tidak ingin mengganti layer lama.</p>
 
-                <div class="p-3 rounded-2xl bg-white border border-space-indigo/15">
-                    <label class="block text-xs font-bold text-space-indigo mb-1">Ganti Lineart (PNG)</label>
-                    <input type="file" name="lineart" accept="image/png" class="w-full text-xs">
+                <!-- 1. Ganti Lineart -->
+                <div class="p-3.5 rounded-2xl bg-white border-2 border-space-indigo/15">
+                    <label class="flex items-center justify-between text-xs font-black text-space-indigo mb-1.5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-pen-nib text-space-indigo"></i>
+                            1. Ganti Lineart (PNG)
+                        </span>
+                    </label>
+                    <input type="file" name="lineart" accept="image/png" class="w-full text-xs text-space-indigo file:mr-3 file:py-1.5 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-space-indigo file:text-white">
                 </div>
 
-                <div class="p-3 rounded-2xl bg-white border border-space-indigo/15">
-                    <label class="block text-xs font-bold text-space-indigo mb-1">Ganti Colour Utama / Color 1 (PNG)</label>
-                    <input type="file" name="color_1" accept="image/png" class="w-full text-xs">
+                <!-- 2. Ganti Colour 1 & Tambah Extra Colour -->
+                <div class="p-3.5 rounded-2xl bg-white border-2 border-space-indigo/15 flex flex-col gap-3">
+                    <div>
+                        <label class="flex items-center justify-between text-xs font-black text-space-indigo mb-1.5">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-palette text-princeton-orange"></i>
+                                2. Ganti Colour Utama / Color 1 (PNG)
+                            </span>
+                        </label>
+                        <input type="file" name="color_1" accept="image/png" class="w-full text-xs text-space-indigo file:mr-3 file:py-1.5 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-princeton-orange file:text-white">
+                    </div>
+
+                    <div id="editExtraColorsContainer" class="flex flex-col gap-2.5"></div>
+
+                    <button type="button" onclick="addColorSlot('editExtraColorsContainer')" class="w-full py-2 px-3 rounded-xl border-2 border-dashed border-space-indigo/25 hover:border-princeton-orange hover:bg-floral-white text-space-indigo font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-plus-circle text-princeton-orange"></i>
+                        <span>Tambah Layer Colour Baru</span>
+                    </button>
                 </div>
 
-                <!-- Container Tambah Extra Color di Edit -->
-                <div id="editExtraColorsContainer" class="flex flex-col gap-3"></div>
-
-                <button type="button" onclick="addColorSlot('editExtraColorsContainer')" class="w-full py-2.5 px-4 rounded-2xl border-2 border-dashed border-space-indigo/30 hover:border-princeton-orange hover:bg-white text-space-indigo font-extrabold text-xs flex items-center justify-center gap-2 transition">
-                    <i class="fa-solid fa-plus-circle text-princeton-orange text-sm"></i>
-                    <span>Tambah Layer Colour Baru</span>
-                </button>
+                <!-- 3. Ganti / Tambah Shading -->
+                <div class="p-3.5 rounded-2xl bg-white border-2 border-space-indigo/15">
+                    <label class="flex items-center justify-between text-xs font-black text-space-indigo mb-1.5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-half-stroke text-purple-600"></i>
+                            3. Ganti / Tambah Shading (PNG)
+                        </span>
+                        <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-extrabold">OPSIONAL</span>
+                    </label>
+                    <input type="file" name="shading" accept="image/png" class="w-full text-xs text-space-indigo file:mr-3 file:py-1.5 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-700 file:text-white">
+                </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 shrink-0">
                     <button type="button" onclick="closeEditModal()" class="px-5 py-2.5 rounded-xl bg-zinc-200 hover:bg-zinc-300 text-space-indigo font-bold text-xs">Batal</button>
@@ -307,14 +359,14 @@
         function addColorSlot(containerId) {
             const container = document.getElementById(containerId);
             const currentCount = container.children.length;
-            const colorNumber = currentCount + 2; // Color 2, Color 3, Color 4, dst.
+            const colorNumber = currentCount + 2;
 
             const slot = document.createElement('div');
-            slot.className = 'p-3.5 rounded-2xl bg-white border-2 border-pearl-aqua relative flex flex-col gap-1.5';
+            slot.className = 'p-3 rounded-xl bg-floral-white border border-pearl-aqua flex flex-col gap-1.5';
             slot.innerHTML = `
                 <div class="flex items-center justify-between text-xs font-black text-space-indigo">
                     <span>Layer Colour Tambahan #${colorNumber} (PNG)</span>
-                    <button type="button" onclick="this.closest('.p-3\\.5').remove()" class="text-rose-500 hover:text-rose-700 text-xs font-bold flex items-center gap-1">
+                    <button type="button" onclick="this.closest('.p-3').remove()" class="text-rose-500 hover:text-rose-700 text-xs font-bold flex items-center gap-1">
                         <i class="fa-solid fa-trash-can"></i> Hapus
                     </button>
                 </div>
